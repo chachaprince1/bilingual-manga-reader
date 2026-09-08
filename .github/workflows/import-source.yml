@@ -17,6 +17,7 @@ jobs:
           tar -xzf bilingual-manga-reader-source.tar.gz
           rm bilingual-manga-reader-source.tar.gz
           rm -f .github/workflows/import-source.yml
+          rm -f .github/workflows/build.yml
       - name: Publish the source tree
         run: |
           git config user.name "github-actions[bot]"
