@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Bilingual Manga Reader and Mokuro Converter</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%2310192a%22/><text x=%2232%22 y=%2245%22 text-anchor=%22middle%22 font-size=%2240%22 fill=%22%236ee7b7%22>本</text></svg>">
+  <link rel="stylesheet" href="/static/style.css?v=1.4.1">
+</head>
+<body>
+  <header class="topbar">
+    <button class="brand plain" id="home-button" aria-label="Library">Bilingual Manga Reader and Mokuro Converter</button>
+    <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="Search series, volumes, chapters"></label>
+    <button class="secondary" id="settings-button" aria-label="Settings">Settings</button>
+    <button id="add-button">+ Add Manga</button>
+  </header>
+  <main id="app" tabindex="-1"><div class="loading">Loading your library…</div></main>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="import-dialog">
+    <form method="dialog" class="dialog-form">
+      <header><div><p class="eyebrow">LOCAL IMPORT</p><h2 id="import-heading">Add manga</h2></div><button class="icon secondary" value="cancel" aria-label="Close">×</button></header>
+      <div class="local-callout"><b>Stored only on this computer</b><span>Your manga is never uploaded. Folders stay in place; archives are unpacked into the app's private library. Originals are never changed.</span><code id="import-library-path">Loading local library location…</code></div>
+      <p class="muted" id="import-copy">Any Mokuro manga works. Archives from <a href="https://github.com/B-M-dev/Bilingual-Manga-archive" target="_blank" rel="noreferrer">Bilingual Manga</a> are recognized, named, grouped, and page-aligned automatically. The app caches about 14 MB of recognition metadata from that linked archive on first use; manga pages never leave this computer.</p>
+      <section class="bulk-entry" id="bulk-entry">
+        <div><h3>Add a whole collection</h3><p>Select one parent folder. The reader finds separate Mokuro folders and manga archives, then lets you review everything before importing.</p></div>
+        <button type="button" id="bulk-pick">Scan for manga…</button>
+      </section>
+      <div class="or-divider" id="single-divider"><span>or add one manga</span></div>
+      <div class="dropzone" id="dropzone" tabindex="0">
+        <strong>Drop one Mokuro folder, raw image folder, PDF, CBZ, ZIP, or TAR</strong>
+        <span>or choose one below</span>
+        <button type="button" class="secondary" id="choose-manga">Choose one manga…</button>
+      </div>
+      <input hidden id="folder-input" type="file" multiple webkitdirectory>
+      <input hidden id="archive-input" type="file" accept=".pdf,.cbz,.zip,.tar,application/pdf,application/zip,application/x-tar">
+      <div class="auto-detection" id="auto-detection"><span>Automatic detection</span><b id="detected-type">Choose manga to identify it</b><p id="detected-copy">The reader finds its type and title information for you.</p></div>
+      <label class="convert-choice" id="convert-choice"><input id="convert-after-import" type="checkbox"><span><b>Make Japanese text selectable with Mokuro</b> Creates OCR data that works with Yomitan and opens in this reader. You can also convert it later from its library page.</span></label>
+      <div class="import-options" id="import-options">
+        <label><input id="friendly-names" type="checkbox" checked><span><b>User-friendly file names</b>Use the detected series and volume instead of random folder IDs inside the app library.</span></label>
+        <label><input id="delete-original-after-import" type="checkbox" disabled><span><b>Move the original to Trash after a safe import</b><small id="delete-original-note">Choose one manga with the button above to make this available.</small></span></label>
+      </div>
+      <details class="advanced-fields" id="metadata-fields">
+        <summary>Advanced corrections <span>Usually unnecessary</span></summary>
+        <div class="field-grid">
+          <label>Edition type<select id="import-type"><option value="auto">Auto-detect</option><option value="bilingual-jp">Bilingual Manga · Japanese</option><option value="bilingual-en">Bilingual Manga · English</option><option value="mokuro">Mokuro-ready Japanese</option><option value="raw-jp">Raw Japanese</option><option value="raw-en">Raw English</option></select></label>
+          <label>Series<input id="import-series" placeholder="Found automatically"></label>
+          <label>Title<input id="import-title" placeholder="Found automatically"></label>
+          <label>Volume<input id="import-volume" placeholder="Found automatically"></label>
+          <label>Chapter<input id="import-chapter" placeholder="Found automatically"></label>
+        </div>
+      </details>
+      <div class="progress" id="import-progress" hidden><div></div><span>Preparing…</span></div>
+      <p class="error" id="import-error"></p>
+      <menu><button value="cancel" class="secondary">Cancel</button><button type="button" id="import-submit" disabled>Import</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="remove-dialog">
+    <form method="dialog" class="dialog-form">
+      <header><div><p class="eyebrow">REMOVE MANGA</p><h2 id="remove-heading">Remove from library</h2></div><button class="icon secondary" value="cancel" aria-label="Close">×</button></header>
+      <p class="muted" id="remove-copy"></p>
+      <label class="destructive-choice"><input id="remove-originals" type="checkbox"><span><b>Also move the original files to Trash</b><small id="remove-originals-note">This is optional and recoverable from Trash or the Recycle Bin.</small></span></label>
+      <p class="error" id="remove-error"></p>
+      <menu><button value="cancel" class="secondary">Cancel</button><button type="button" class="danger" id="remove-confirm">Remove</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="conversion-options-dialog">
+    <form method="dialog" class="dialog-form">
+      <header><div><p class="eyebrow">MOKURO CONVERSION</p><h2>Make Japanese text selectable</h2></div><button class="icon secondary" value="cancel" aria-label="Close">×</button></header>
+      <p>The app creates a <b>.mokuro OCR file</b> and an app-managed page copy. The manga will then support selectable Japanese text and Yomitan in this reader.</p>
+      <p class="muted">You can run this now or leave the manga raw and use Convert with Mokuro later.</p>
+      <label class="destructive-choice"><input id="conversion-delete-original" type="checkbox"><span><b>Move the original folder to Trash after conversion</b><small id="conversion-delete-note">Optional. The source is moved only after every page and the OCR output are verified.</small></span></label>
+      <p class="error" id="conversion-options-error"></p>
+      <menu><button value="cancel" class="secondary">Not now</button><button type="button" id="conversion-start">Convert now</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="conversion-dialog">
+    <form method="dialog" class="dialog-form">
+      <header><div><p class="eyebrow">LOCAL MOKURO CONVERSION</p><h2>Making text selectable</h2></div><button class="icon secondary" value="cancel" aria-label="Close">×</button></header>
+      <p class="muted">The output is a verified .mokuro OCR file attached to this library edition. Hardware acceleration is used automatically when supported.</p>
+      <div class="progress" id="conversion-progress"><div></div><span>Preparing…</span></div>
+      <p class="muted" id="conversion-label"></p>
+      <p class="error" id="conversion-error"></p>
+      <menu><button value="cancel" class="secondary">Run in background</button><button value="cancel" id="conversion-done" hidden>Open manga</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="bulk-dialog" class="bulk-dialog">
+    <form method="dialog" class="dialog-form">
+      <header><div><p class="eyebrow">BULK ADD</p><h2>Scan for manga</h2></div><button class="icon secondary" value="cancel" aria-label="Close">×</button></header>
+      <p class="muted">Choose a parent folder once. Each detected edition remains separate, <a href="https://github.com/B-M-dev/Bilingual-Manga-archive" target="_blank" rel="noreferrer">Bilingual Manga archives</a> are identified automatically, and one bad file cannot stop the rest.</p>
+      <div class="progress" id="bulk-scan-progress"><div></div><span>Choose a folder to begin…</span></div>
+      <p class="bulk-root" id="bulk-root"></p>
+      <section id="bulk-results" hidden>
+        <div class="bulk-summary" id="bulk-summary"></div>
+        <div class="bulk-toolbar">
+          <div class="button-row"><button type="button" class="secondary" id="bulk-select-ready">Select ready</button><button type="button" class="secondary" id="bulk-clear">Clear selection</button></div>
+          <label class="bulk-search">Filter results<input id="bulk-search" type="search" placeholder="Title or filename"></label>
+          <label class="bulk-filter">Show<select id="bulk-filter"><option value="all">Everything</option><option value="ready">Ready</option><option value="review">Needs review</option><option value="error">Problems</option><option value="existing">Already added</option></select></label>
+        </div>
+        <div class="bulk-list" id="bulk-list" role="list"></div>
+      </section>
+      <div class="import-options bulk-options" id="bulk-options">
+        <label><input id="bulk-friendly-names" type="checkbox" checked><span><b>User-friendly file names</b>Organize managed archive copies by detected series and volume.</span></label>
+        <label><input id="bulk-delete-originals" type="checkbox"><span><b>Move imported archives to Trash</b>Only archives copied safely into the app library are moved; referenced image and Mokuro folders stay in place.</span></label>
+      </div>
+      <div class="progress" id="bulk-import-progress" hidden><div></div><span>Preparing imports…</span></div>
+      <p class="error" id="bulk-error"></p>
+      <menu><button value="cancel" class="secondary">Close</button><button type="button" id="bulk-import" disabled>Import selected</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog">
+    <form method="dialog" class="dialog-form">
+      <header><div><p class="eyebrow">BILINGUAL MANGA READER AND MOKURO CONVERTER</p><h2>About this App</h2></div><button class="icon secondary" value="cancel" aria-label="Close">×</button></header>
+      <p class="about-copy"><b>Stored only on this computer.</b> Your manga is never uploaded. Folders stay in place; archives are unpacked into the app's private library. Originals are never changed unless you explicitly choose a Move original to Trash option.</p>
+      <p class="about-copy">Any Mokuro manga works. Recognized archives and mapping data from <a href="https://github.com/B-M-dev/Bilingual-Manga-archive" target="_blank" rel="noreferrer">Bilingual Manga</a> group, name, and page-align Japanese and English editions automatically.</p>
+      <div id="status-panel" class="status-panel"></div>
+      <div class="settings-actions">
+        <button type="button" class="secondary" data-folder="library">Open Library Folder</button>
+        <button type="button" class="secondary" data-folder="data">Open Data Folder</button>
+        <a class="button secondary" href="/api/backup" download>Back Up Database</a>
+      </div>
+      <section class="settings-section">
+        <h3>Archived <a href="https://github.com/B-M-dev/Bilingual-Manga-archive" target="_blank" rel="noreferrer">Bilingual Manga</a> mappings</h3>
+        <p class="muted">This file tells the reader which English pages match which Japanese pages. Recognized <a href="https://github.com/B-M-dev/Bilingual-Manga-archive" target="_blank" rel="noreferrer">Bilingual Manga</a> sets are mapped automatically; use this only when you need to supply a mapping yourself.</p>
+        <div class="inline-fields"><select id="mapping-series"></select><input id="mapping-file" type="file" accept="application/json,.json"></div>
+        <button type="button" class="secondary" id="mapping-import">Import mapping file manually</button>
+      </section>
+      <section class="settings-section danger-zone">
+        <h3>Application</h3>
+        <button type="button" class="danger" id="quit-button">Quit local app</button>
+      </section>
+      <menu><button value="cancel">Done</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="pairing-dialog">
+    <form method="dialog" class="dialog-form">
+      <header><div><p class="eyebrow">POSSIBLE LANGUAGE MATCH</p><h2>Pair these editions?</h2></div><button class="icon secondary" value="cancel" aria-label="Close">×</button></header>
+      <p class="muted" id="pairing-copy">The reader found possible opposite-language editions. Choose the matching one to group and align their pages.</p>
+      <div class="pairing-list" id="pairing-list"></div>
+      <p class="error" id="pairing-error"></p>
+      <menu><button value="cancel" class="secondary">Keep separate</button></menu>
+    </form>
+  </dialog>
+  <script src="/static/app.js?v=1.4.1"></script>
+</body>
+</html>
