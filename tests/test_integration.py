@@ -851,10 +851,8 @@ class OfflineSourceTests(unittest.TestCase):
         fixture = json.loads(
             (
                 root
-                / "outputs"
-                / "mokuro-test-fixtures"
-                / "Ubunchu-Episode-01-JP"
-                / "Ubunchu-Episode-1.mokuro"
+                / "tests"
+                / "ubunchu-line-boxes.json"
             ).read_text(encoding="utf-8")
         )
         bubble = next(
