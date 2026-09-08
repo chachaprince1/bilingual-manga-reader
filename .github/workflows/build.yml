@@ -1,0 +1,54 @@
+name: native-release-build
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -W error::ResourceWarning -m unittest discover -s tests -v
+
+  macos:
+    needs: test
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: scripts/build_macos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BilingualMangaOffline-macOS
+          path: outputs/BilingualMangaOffline-macOS.zip
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Build native Windows app
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --windowed --collect-data certifi --hidden-import zlib --hidden-import PIL.Image --hidden-import PIL.ImageOps --name "Bilingual Manga Reader and Mokuro Converter" --add-data "static;static" app/launcher.py
+          Invoke-WebRequest "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip" -OutFile uv.zip
+          New-Item -ItemType Directory -Force -Path "dist/Bilingual Manga Reader and Mokuro Converter/tools" | Out-Null
+          Expand-Archive uv.zip -DestinationPath "dist/Bilingual Manga Reader and Mokuro Converter/tools"
+          New-Item -ItemType Directory -Force -Path outputs | Out-Null
+          Compress-Archive -Path "dist/Bilingual Manga Reader and Mokuro Converter" -DestinationPath outputs/BilingualMangaOffline-Windows-native.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BilingualMangaOffline-Windows
+          path: outputs/BilingualMangaOffline-Windows-native.zip
