@@ -56,10 +56,12 @@ from .importer import (
 )
 from .mapping_import import normalize_data
 
-VERSION = "1.4.1"
+VERSION = "1.4.2"
 PRODUCT_NAME = "Bilingual Manga Reader and Mokuro Converter"
 PREVIOUS_PRODUCT_NAMES = ("Mokuro & Bilingual Manga Reader", "Bilingual Manga Offline")
-DEFAULT_PORT = 8765
+# AnkiConnect owns 8765 by convention. Keep the reader on a separate stable
+# loopback port so launching either application first cannot break the other.
+DEFAULT_PORT = 48765
 ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
 DB: sqlite3.Connection | None = None
 DB_LOCK = threading.RLock()
@@ -470,14 +472,29 @@ def _db() -> sqlite3.Connection:
     return DB
 
 
+def _security_headers(handler, content_type: str = "") -> None:
+    """Apply browser hardening without blocking Chrome/Yomitan extensions."""
+    handler.send_header("X-Content-Type-Options", "nosniff")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("X-Frame-Options", "DENY")
+    handler.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if content_type.startswith("text/html"):
+        # Keep this deliberately narrow: a default-src/frame-src policy can
+        # interfere with dictionary-extension popups injected by Yomitan.
+        handler.send_header(
+            "Content-Security-Policy",
+            "base-uri 'none'; object-src 'none'; frame-ancestors 'none'",
+        )
+
+
 def _json_response(handler, payload, status: int = 200) -> None:
     raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     handler.send_response(status)
-    handler.send_header("Content-Type", "application/json; charset=utf-8")
+    content_type = "application/json; charset=utf-8"
+    handler.send_header("Content-Type", content_type)
     handler.send_header("Content-Length", str(len(raw)))
     handler.send_header("Cache-Control", "no-store")
-    handler.send_header("X-Content-Type-Options", "nosniff")
-    handler.send_header("Referrer-Policy", "no-referrer")
+    _security_headers(handler, content_type)
     handler.end_headers()
     handler.wfile.write(raw)
 
@@ -567,11 +584,12 @@ def _serve_path(
     if not path.is_file():
         handler.send_error(404)
         return
+    resolved_content_type = content_type or mimetypes.guess_type(path.name)[0] or "application/octet-stream"
     handler.send_response(200)
-    handler.send_header("Content-Type", content_type or mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+    handler.send_header("Content-Type", resolved_content_type)
     handler.send_header("Content-Length", str(path.stat().st_size))
-    handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Cache-Control", cache_control)
+    _security_headers(handler, resolved_content_type)
     if download:
         handler.send_header("Content-Disposition", f'attachment; filename="{download}"')
     handler.end_headers()
@@ -1909,7 +1927,7 @@ class Server(ThreadingHTTPServer):
 
 
 class Handler(SimpleHTTPRequestHandler):
-    server_version = "BilingualMangaReader/1.4.1"
+    server_version = "BilingualMangaReader/1.4.2"
 
     def log_message(self, fmt, *args):
         LOGGER.info("%s - %s", self.client_address[0], fmt % args)

@@ -19,6 +19,10 @@ A private, offline manga library for **any Mokuro manga**, raw Japanese manga, a
 
 Install and configure Yomitan in Chrome normally for Japanese dictionary lookup.
 
+The reader uses `127.0.0.1:48765` by default. It deliberately avoids port
+`8765`, which belongs to AnkiConnect, so the manga reader, Yomitan, ImmersionKit,
+and Anki can run at the same time regardless of launch order.
+
 ## What it reads
 
 - Existing Mokuro folders with images and a `.mokuro` file.
@@ -37,7 +41,7 @@ Shortcuts: `L` language, `A` alignment editor, `B` bookmark, `F` favorite, arrow
 
 ## Privacy and storage
 
-The server binds only to `127.0.0.1`. There is no account, telemetry, LAN exposure, cloud database, or manga upload. Reading works without Internet after import; only first-use Bilingual recognition metadata and converter packages/models require downloads.
+The server binds only to `127.0.0.1`, rejects cross-site/foreign-host requests, and sends browser hardening headers without blocking Yomitan. There is no account, telemetry, LAN exposure, cloud database, or manga upload. Reading works without Internet after import; only first-use Bilingual recognition metadata and converter packages/models require downloads.
 
 - macOS: `~/Library/Application Support/Bilingual Manga Reader and Mokuro Converter`
 - Windows: `%APPDATA%\Bilingual Manga Reader and Mokuro Converter`

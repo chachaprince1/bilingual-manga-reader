@@ -36,7 +36,9 @@ const state = {
   },
 };
 
-const STABLE_PORT = 8765;
+// 8765 is reserved for AnkiConnect. The reader uses its own stable port so
+// Yomitan and browser-based mining tools can keep talking to Anki.
+const STABLE_PORT = 48765;
 const BILINGUAL_MANGA_LINK = '<a href="https://github.com/B-M-dev/Bilingual-Manga-archive" target="_blank" rel="noreferrer">Bilingual Manga data</a>';
 
 async function api(url, options = {}) {

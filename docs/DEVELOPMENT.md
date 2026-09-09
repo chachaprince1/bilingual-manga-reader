@@ -2,7 +2,7 @@
 
 ## Local development
 
-Run `python3 -m app.server --no-browser`. The server binds only to loopback on port 8765, falling back to a free port if necessary.
+Run `python3 -m app.server --no-browser`. The server binds only to loopback on port 48765, falling back to a free port if necessary. Port 8765 remains reserved for AnkiConnect.
 
 Run the strict suite before packaging:
 

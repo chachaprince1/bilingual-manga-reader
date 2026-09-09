@@ -11,7 +11,7 @@ DONE
 - macOS and Windows packaging scripts; Windows x64 portable export produced with a GUI launcher and bundled runtime.
 
 CURRENT
-- Complete. Version 1.4.1 is installed and the final Mac/Windows archives and checksums are in `outputs/`.
+- Complete. Version 1.4.2 avoids AnkiConnect's port; refreshed Mac/Windows archives and checksums are in `outputs/`, and the packaged Mac app is running against the retained library on port 48765 alongside AnkiConnect on 8765.
 
 BLOCKED
 - None for the requested release. Native Windows execution is unavailable on this Apple Silicon host, so the Windows-specific launch/Chrome/Recycle Bin acceptance is recorded as unexecuted rather than implied.

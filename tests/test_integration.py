@@ -116,12 +116,30 @@ class HttpIntegrationTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(b"Bilingual Manga", html)
         self.assertEqual(headers["Cache-Control"], "no-store")
-        status, javascript, headers = self.request("GET", "/static/app.js?v=1.4.1")
+        self.assertEqual(headers["X-Frame-Options"], "DENY")
+        self.assertEqual(
+            headers["Content-Security-Policy"],
+            "base-uri 'none'; object-src 'none'; frame-ancestors 'none'",
+        )
+        status, javascript, headers = self.request("GET", "/static/app.js?v=1.4.2")
         self.assertEqual(status, 200)
         self.assertIn(b"contentTypeName", javascript)
         self.assertEqual(headers["Cache-Control"], "no-store")
         status, _, _ = self.request("GET", "/api/library", headers={"Sec-Fetch-Site": "cross-site"})
         self.assertEqual(status, 403)
+        status, _, _ = self.request("GET", "/api/library", headers={"Host": "reader.example"})
+        self.assertEqual(status, 403)
+        status, _, _ = self.request(
+            "POST",
+            "/api/settings",
+            {"reader_zoom": 1.0},
+            headers={"Origin": "https://reader.example"},
+        )
+        self.assertEqual(status, 403)
+
+    def test_default_port_never_conflicts_with_ankiconnect(self):
+        self.assertEqual(server_module.DEFAULT_PORT, 48765)
+        self.assertNotEqual(server_module.DEFAULT_PORT, 8765)
 
     def test_reader_settings_survive_database_reopen(self):
         status, _, _ = self.request(
@@ -840,7 +858,8 @@ class OfflineSourceTests(unittest.TestCase):
         self.assertIn('discoveryButton("mokuro-ready", "Mokuro-Ready")', app_source)
         self.assertNotIn("Most bookmarked", combined)
         self.assertNotIn("/api/catalog/import", app_source)
-        self.assertIn("STABLE_PORT = 8765", app_source)
+        self.assertIn("STABLE_PORT = 48765", app_source)
+        self.assertNotIn("STABLE_PORT = 8765", app_source)
         self.assertIn("/api/source/pick", app_source)
         self.assertIn("/api/bulk/scan/start", app_source)
         self.assertIn("/api/bulk/import-one", app_source)

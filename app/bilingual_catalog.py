@@ -157,7 +157,7 @@ def ensure_catalog(destination: Path, progress=None) -> dict:
         temporary = incoming / f"bilingual-catalog-{uuid.uuid4().hex}.zip"
         request = urllib.request.Request(
             CATALOG_DOWNLOAD_URL,
-            headers={"User-Agent": "Bilingual-Manga-Reader/1.4.1"},
+            headers={"User-Agent": "Bilingual-Manga-Reader/1.4.2"},
         )
         tls = ssl.create_default_context(cafile=certifi.where())
         total = 0
